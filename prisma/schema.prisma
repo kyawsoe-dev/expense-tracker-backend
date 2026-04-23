@@ -8,14 +8,43 @@ datasource db {
 }
 
 model User {
-  id              String    @id @default(uuid())
-  email           String    @unique
-  passwordHash    String
-  name            String?
+  id               String         @id @default(uuid())
+  email            String         @unique
+  passwordHash     String
+  name             String?
   refreshTokenHash String?
-  expenses        Expense[]
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  expenses         Expense[]
+  ownedGroups      ExpenseGroup[]       @relation("GroupOwner")
+  groupMemberships ExpenseGroupMember[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+model ExpenseGroup {
+  id        String             @id @default(uuid())
+  name      String
+  ownerId   String
+  owner     User               @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members   ExpenseGroupMember[]
+  expenses  Expense[]
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@unique([ownerId, name])
+  @@index([ownerId, createdAt])
+}
+
+model ExpenseGroupMember {
+  id        String       @id @default(uuid())
+  groupId    String
+  userId     String
+  role       String      @default("member")
+  group      ExpenseGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime    @default(now())
+
+  @@unique([groupId, userId])
+  @@index([userId, createdAt])
 }
 
 model Expense {
@@ -26,10 +55,13 @@ model Expense {
   date       DateTime
   note       String?
   userId     String
+  groupId    String?
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group      ExpenseGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   @@index([userId, date])
   @@index([userId, category])
+  @@index([groupId])
 }

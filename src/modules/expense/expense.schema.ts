@@ -8,6 +8,7 @@ export const createExpenseSchema = z.object({
   title: z.string().trim().min(1).max(120),
   amount: z.number().positive(),
   category: z.string().trim().min(1).max(60),
+  groupId: z.string().uuid().optional().nullable(),
   date: expenseDateSchema,
   note: z.string().trim().max(500).optional()
 });

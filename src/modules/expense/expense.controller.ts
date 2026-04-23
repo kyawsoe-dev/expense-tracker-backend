@@ -24,6 +24,18 @@ export class ExpenseController {
     }
   };
 
+  listByGroup = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { groupId } = req.params;
+      const take = Number(req.query.take ?? 20);
+      const skip = Number(req.query.skip ?? 0);
+      const items = await this.service.listExpensesByGroup(req.user!.sub, groupId, take, skip);
+      res.status(200).json(items);
+    } catch (err) {
+      next(err);
+    }
+  };
+
   update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const updated = await this.service.updateExpense(req.user!.sub, req.params.id, req.body);

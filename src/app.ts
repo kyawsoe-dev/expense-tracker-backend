@@ -6,6 +6,7 @@ import pinoHttp from "pino-http";
 import { logger } from "./config/logger";
 import authRoutes from "./modules/auth/auth.routes";
 import expenseRoutes from "./modules/expense/expense.routes";
+import groupRoutes from "./modules/group/group.routes";
 import { errorHandler } from "./common/middleware/error.middleware";
 
 export function createApp() {
@@ -22,6 +23,7 @@ export function createApp() {
   });
 
   app.use("/api/v1/auth", authRoutes);
+  app.use("/api/v1/groups", groupRoutes);
   app.use("/api/v1/expenses", expenseRoutes);
 
   app.use(errorHandler);
