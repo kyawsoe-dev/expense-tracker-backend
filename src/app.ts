@@ -8,6 +8,7 @@ import authRoutes from "./modules/auth/auth.routes";
 import expenseRoutes from "./modules/expense/expense.routes";
 import groupRoutes from "./modules/group/group.routes";
 import { errorHandler } from "./common/middleware/error.middleware";
+import { registerOpenApi } from "./docs/openapi";
 
 export function createApp() {
   const app = express();
@@ -21,6 +22,10 @@ export function createApp() {
   app.get("/health", (_req, res) => {
     res.status(200).json({ status: "ok" });
   });
+
+  if (process.env.NODE_ENV === "development") {
+    registerOpenApi(app);
+  }
 
   app.use("/api/v1/auth", authRoutes);
   app.use("/api/v1/groups", groupRoutes);

@@ -2,6 +2,15 @@ import { ExpenseRepository } from "./expense.repository";
 import { AppError } from "../../common/errors/AppError";
 import { GroupService } from "../group/group.service";
 
+type ExpenseListFilters = {
+  take: number;
+  skip: number;
+  search?: string;
+  category?: string;
+  year?: number;
+  month?: number;
+};
+
 export class ExpenseService {
   constructor(
     private readonly repo: ExpenseRepository,
@@ -49,8 +58,26 @@ export class ExpenseService {
     });
   }
 
-  listExpenses(userId: string, take?: number, skip?: number) {
-    return this.repo.findMany(userId, take, skip);
+  async listExpenses(userId: string, filters: ExpenseListFilters) {
+    const normalized = this.normalizeListFilters(filters);
+    const { items, total } = await this.repo.findManyPage(userId, normalized);
+
+    return {
+      items,
+      total,
+      take: normalized.take,
+      skip: normalized.skip,
+      hasMore: normalized.skip + items.length < total,
+      nextSkip: normalized.skip + items.length < total
+        ? normalized.skip + items.length
+        : null,
+      filters: {
+        search: normalized.search,
+        category: normalized.category,
+        year: normalized.year,
+        month: normalized.month
+      }
+    };
   }
 
   listExpensesByGroup(userId: string, groupId: string, take?: number, skip?: number) {
@@ -111,18 +138,144 @@ export class ExpenseService {
   }
 
   async getCurrentMonthSummary(userId: string) {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return this.getMonthSummary(userId, {});
+  }
 
-    const byCategory = await this.repo.monthlySummaryByCategory(userId, monthStart, monthEnd);
-    const total = byCategory.reduce((sum, item) => sum + item.total, 0);
+  async getMonthSummary(userId: string, filters: { year?: number; month?: number }) {
+    const { year, month, startDate, endDate } = this.resolveMonthRange(filters);
+    const expenses = await this.repo.findForDateRange(userId, startDate, endDate);
+    const byCategoryMap = new Map<string, number>();
+
+    let total = 0;
+    for (const expense of expenses) {
+      const amount = Number(expense.amount);
+      total += amount;
+      byCategoryMap.set(
+        expense.category,
+        this.roundCurrency((byCategoryMap.get(expense.category) ?? 0) + amount)
+      );
+    }
+
+    const byCategory = [...byCategoryMap.entries()]
+      .map(([category, categoryTotal]) => ({
+        category,
+        total: this.roundCurrency(categoryTotal)
+      }))
+      .sort((a, b) => b.total - a.total);
 
     return {
-      monthStart,
-      monthEnd,
-      total,
+      year,
+      month,
+      monthStart: startDate,
+      monthEnd: endDate,
+      total: this.roundCurrency(total),
+      transactionCount: expenses.length,
+      topCategory: byCategory[0]?.category ?? null,
       byCategory
     };
+  }
+
+  async getYearAnalytics(userId: string, filters: { year?: number }) {
+    const year = filters.year ?? new Date().getFullYear();
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year + 1, 0, 1);
+    const expenses = await this.repo.findForDateRange(userId, startDate, endDate);
+    const totalsByMonth = new Array<number>(12).fill(0);
+    const categoryTotals = new Map<string, number>();
+    let total = 0;
+
+    for (const expense of expenses) {
+      const amount = Number(expense.amount);
+      const monthIndex = expense.date.getMonth();
+
+      totalsByMonth[monthIndex] = this.roundCurrency(totalsByMonth[monthIndex] + amount);
+      categoryTotals.set(
+        expense.category,
+        this.roundCurrency((categoryTotals.get(expense.category) ?? 0) + amount)
+      );
+      total += amount;
+    }
+
+    const byMonth = totalsByMonth.map((monthTotal, index) => ({
+      month: index + 1,
+      label: new Date(year, index, 1).toLocaleString("en-US", { month: "short" }),
+      total: this.roundCurrency(monthTotal)
+    }));
+
+    const byCategory = [...categoryTotals.entries()]
+      .map(([category, categoryTotal]) => ({
+        category,
+        total: this.roundCurrency(categoryTotal)
+      }))
+      .sort((a, b) => b.total - a.total);
+
+    return {
+      year,
+      yearStart: startDate,
+      yearEnd: endDate,
+      total: this.roundCurrency(total),
+      averageMonthly: this.roundCurrency(total / 12),
+      topCategory: byCategory[0]?.category ?? null,
+      byMonth,
+      byCategory
+    };
+  }
+
+  private normalizeListFilters(filters: ExpenseListFilters) {
+    const take = Number.isFinite(filters.take) ? filters.take : 20;
+    const skip = Number.isFinite(filters.skip) ? filters.skip : 0;
+    const search = filters.search?.trim() || undefined;
+    const category = filters.category?.trim() || undefined;
+    const year = filters.year;
+    const month = filters.month;
+    const { startDate, endDate } = this.resolveOptionalDateRange({ year, month });
+
+    return {
+      take,
+      skip,
+      search,
+      category,
+      year,
+      month,
+      startDate,
+      endDate
+    };
+  }
+
+  private resolveOptionalDateRange(filters: { year?: number; month?: number }) {
+    if (filters.year == null && filters.month == null) {
+      return { startDate: undefined, endDate: undefined };
+    }
+
+    if (filters.month != null) {
+      const year = filters.year ?? new Date().getFullYear();
+      return {
+        startDate: new Date(year, filters.month - 1, 1),
+        endDate: new Date(year, filters.month, 1)
+      };
+    }
+
+    const year = filters.year!;
+    return {
+      startDate: new Date(year, 0, 1),
+      endDate: new Date(year + 1, 0, 1)
+    };
+  }
+
+  private resolveMonthRange(filters: { year?: number; month?: number }) {
+    const now = new Date();
+    const year = filters.year ?? now.getFullYear();
+    const month = filters.month ?? now.getMonth() + 1;
+
+    return {
+      year,
+      month,
+      startDate: new Date(year, month - 1, 1),
+      endDate: new Date(year, month, 1)
+    };
+  }
+
+  private roundCurrency(value: number) {
+    return Math.round(value * 100) / 100;
   }
 }

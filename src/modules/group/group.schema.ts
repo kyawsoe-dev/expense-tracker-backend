@@ -8,3 +8,8 @@ export const createGroupSchema = z.object({
 export const addGroupMemberSchema = z.object({
   email: z.string().trim().email()
 });
+
+export const memberSuggestionQuerySchema = z.object({
+  query: z.string().trim().min(1).max(100),
+  groupId: z.string().uuid().optional()
+});

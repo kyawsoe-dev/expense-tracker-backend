@@ -108,6 +108,32 @@ export class GroupService {
     return this.getGroupDetail(requestUserId, groupId);
   }
 
+  async suggestMembers(
+    requestUserId: string,
+    payload: { query: string; groupId?: string }
+  ) {
+    const query = payload.query.trim().toLowerCase();
+    if (query.length === 0) {
+      return [];
+    }
+
+    const excludeUserIds = [requestUserId];
+
+    if (payload.groupId) {
+      const group = await this.ensureAccessibleGroup(payload.groupId, requestUserId);
+      for (const member of group.members) {
+        excludeUserIds.push(member.user.id);
+      }
+    }
+
+    const users = await this.repo.searchUsersByEmail(query, [...new Set(excludeUserIds)]);
+    return users.map((user) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email
+    }));
+  }
+
   private async resolveMemberIds(memberEmails: string[], ownerId: string) {
     const normalizedEmails = [...new Set(
       memberEmails

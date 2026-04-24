@@ -39,4 +39,13 @@ export class GroupController {
       next(err);
     }
   };
+
+  suggestMembers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const suggestions = await this.service.suggestMembers(req.user!.sub, req.query as any);
+      res.status(200).json(suggestions);
+    } catch (err) {
+      next(err);
+    }
+  };
 }

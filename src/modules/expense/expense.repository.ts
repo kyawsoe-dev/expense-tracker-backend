@@ -1,4 +1,13 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
+
+type ExpenseListFilters = {
+  take: number;
+  skip: number;
+  search?: string;
+  category?: string;
+  startDate?: Date;
+  endDate?: Date;
+};
 
 export class ExpenseRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -41,14 +50,21 @@ export class ExpenseRepository {
     });
   }
 
-  findMany(userId: string, take = 20, skip = 0) {
-    return this.prisma.expense.findMany({
-      where: { userId },
-      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-      include: this.includeGroup,
-      take,
-      skip
-    });
+  async findManyPage(userId: string, filters: ExpenseListFilters) {
+    const where = this.buildWhere(userId, filters);
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.expense.findMany({
+        where,
+        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+        include: this.includeGroup,
+        take: filters.take,
+        skip: filters.skip
+      }),
+      this.prisma.expense.count({ where })
+    ]);
+
+    return { items, total };
   }
 
   findByGroup(groupId: string, take = 20, skip = 0) {
@@ -80,24 +96,59 @@ export class ExpenseRepository {
     return this.prisma.expense.deleteMany({ where: { id, userId } });
   }
 
-  async monthlySummaryByCategory(userId: string, monthStart: Date, monthEnd: Date) {
-    const grouped = await this.prisma.expense.groupBy({
-      by: ["category"],
+  findForDateRange(userId: string, startDate: Date, endDate: Date) {
+    return this.prisma.expense.findMany({
       where: {
         userId,
         date: {
-          gte: monthStart,
-          lt: monthEnd
+          gte: startDate,
+          lt: endDate
         }
       },
-      _sum: {
-        amount: true
-      }
+      select: {
+        id: true,
+        amount: true,
+        category: true,
+        date: true
+      },
+      orderBy: [{ date: "asc" }, { createdAt: "asc" }]
     });
+  }
 
-    return grouped.map((g) => ({
-      category: g.category,
-      total: Number(g._sum.amount ?? 0)
-    }));
+  private buildWhere(userId: string, filters: ExpenseListFilters): Prisma.ExpenseWhereInput {
+    const search = filters.search?.trim();
+    const category = filters.category?.trim();
+
+    const where: Prisma.ExpenseWhereInput = {
+      userId
+    };
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { category: { contains: search, mode: "insensitive" } },
+        { note: { contains: search, mode: "insensitive" } },
+        { group: { name: { contains: search, mode: "insensitive" } } }
+      ];
+    }
+
+    if (category) {
+      where.category = {
+        equals: category,
+        mode: "insensitive"
+      };
+    }
+
+    if (filters.startDate || filters.endDate) {
+      where.date = {};
+      if (filters.startDate) {
+        where.date.gte = filters.startDate;
+      }
+      if (filters.endDate) {
+        where.date.lt = filters.endDate;
+      }
+    }
+
+    return where;
   }
 }

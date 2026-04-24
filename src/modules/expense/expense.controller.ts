@@ -15,9 +15,7 @@ export class ExpenseController {
 
   list = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const take = Number(req.query.take ?? 20);
-      const skip = Number(req.query.skip ?? 0);
-      const items = await this.service.listExpenses(req.user!.sub, take, skip);
+      const items = await this.service.listExpenses(req.user!.sub, req.query as any);
       res.status(200).json(items);
     } catch (err) {
       next(err);
@@ -57,6 +55,24 @@ export class ExpenseController {
   summary = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const out = await this.service.getCurrentMonthSummary(req.user!.sub);
+      res.status(200).json(out);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  monthlySummary = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const out = await this.service.getMonthSummary(req.user!.sub, req.query as any);
+      res.status(200).json(out);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  yearlyAnalytics = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const out = await this.service.getYearAnalytics(req.user!.sub, req.query as any);
       res.status(200).json(out);
     } catch (err) {
       next(err);

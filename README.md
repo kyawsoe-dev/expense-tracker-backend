@@ -48,7 +48,7 @@ Example:
 
 ```env
 PORT=3000
-DATABASE_URL=postgresql://user:password@localhost:5432/expense_tracker
+DATABASE_URL=postgresql://user:password@localhost:5432/expense_tracker_db
 JWT_ACCESS_SECRET=replace-with-a-strong-secret
 JWT_REFRESH_SECRET=replace-with-another-strong-secret
 JWT_ACCESS_EXPIRES=15m

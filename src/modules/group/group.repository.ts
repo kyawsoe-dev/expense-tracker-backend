@@ -144,4 +144,33 @@ export class GroupRepository {
       }
     });
   }
+
+  searchUsersByEmail(query: string, excludeUserIds: string[] = []) {
+    return this.prisma.user.findMany({
+      where: {
+        email: {
+          contains: query.toLowerCase(),
+          mode: "insensitive"
+        },
+        ...(excludeUserIds.length > 0
+          ? {
+              id: {
+                notIn: excludeUserIds
+              }
+            }
+          : {})
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true
+      },
+      orderBy: [
+        {
+          email: "asc"
+        }
+      ],
+      take: 8
+    });
+  }
 }
