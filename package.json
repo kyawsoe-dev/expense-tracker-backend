@@ -2,6 +2,9 @@
   "name": "expense-tracker-api",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "type": "commonjs",
   "scripts": {
     "dev": "tsx watch src/server.ts",
