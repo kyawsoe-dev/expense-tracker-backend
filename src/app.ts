@@ -8,6 +8,7 @@ import authRoutes from "./modules/auth/auth.routes";
 import expenseRoutes from "./modules/expense/expense.routes";
 import groupRoutes from "./modules/group/group.routes";
 import { errorHandler } from "./common/middleware/error.middleware";
+import { rateLimiter } from "./common/middleware/rateLimit.middleware";
 import { registerOpenApi } from "./docs/openapi";
 
 export function createApp() {
@@ -15,6 +16,7 @@ export function createApp() {
 
   app.use(helmet());
   app.use(cors());
+  app.use(rateLimiter);
   app.use(express.json());
   app.use(cookieParser());
   app.use(pinoHttp({ logger }));

@@ -23,5 +23,7 @@ export const env = {
   jwtAccessSecret: process.env.JWT_ACCESS_SECRET!,
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET!,
   jwtAccessExpires: process.env.JWT_ACCESS_EXPIRES!,
-  jwtRefreshExpires: process.env.JWT_REFRESH_EXPIRES!
+  jwtRefreshExpires: process.env.JWT_REFRESH_EXPIRES!,
+  rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS ?? 900000),
+  rateLimitMax: Number(process.env.RATE_LIMIT_MAX ?? 100)
 };
