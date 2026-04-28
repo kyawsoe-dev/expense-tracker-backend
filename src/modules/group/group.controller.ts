@@ -40,6 +40,24 @@ export class GroupController {
     }
   };
 
+  rename = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const group = await this.service.renameGroup(req.user!.sub, req.params.id, req.body);
+      res.status(200).json(group);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  removeMember = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const group = await this.service.removeMember(req.user!.sub, req.params.id, req.params.memberId);
+      res.status(200).json(group);
+    } catch (err) {
+      next(err);
+    }
+  };
+
   suggestMembers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const suggestions = await this.service.suggestMembers(req.user!.sub, req.query as any);

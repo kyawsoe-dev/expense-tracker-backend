@@ -7,7 +7,10 @@ const required = [
   "JWT_ACCESS_SECRET",
   "JWT_REFRESH_SECRET",
   "JWT_ACCESS_EXPIRES",
-  "JWT_REFRESH_EXPIRES"
+  "JWT_REFRESH_EXPIRES",
+  "OPENROUTER_API_KEY",
+  "OPENROUTER_BASE_URL",
+  "OPENROUTER_DEFAULT_MODEL"
 ] as const;
 
 for (const key of required) {
@@ -25,5 +28,8 @@ export const env = {
   jwtAccessExpires: process.env.JWT_ACCESS_EXPIRES!,
   jwtRefreshExpires: process.env.JWT_REFRESH_EXPIRES!,
   rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS ?? 900000),
-  rateLimitMax: Number(process.env.RATE_LIMIT_MAX ?? 100)
+  rateLimitMax: Number(process.env.RATE_LIMIT_MAX ?? 100),
+  openrouterApiKey: process.env.OPENROUTER_API_KEY!,
+  openrouterBaseUrl: process.env.OPENROUTER_BASE_URL!,
+  openrouterDefaultModel: process.env.OPENROUTER_DEFAULT_MODEL!
 };

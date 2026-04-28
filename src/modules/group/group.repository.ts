@@ -173,4 +173,28 @@ export class GroupRepository {
       take: 8
     });
   }
+
+  renameGroup(groupId: string, name: string) {
+    return this.prisma.expenseGroup.update({
+      where: { id: groupId },
+      data: { name },
+      include: this.includeGroupSummary()
+    });
+  }
+
+  removeMember(groupId: string, memberId: string) {
+    return this.prisma.expenseGroupMember.delete({
+      where: {
+        groupId_userId: {
+          groupId,
+          userId: memberId
+        }
+      }
+    }).then(() => 
+      this.prisma.expenseGroup.findFirst({
+        where: { id: groupId },
+        include: this.includeGroupSummary()
+      })
+    );
+  }
 }

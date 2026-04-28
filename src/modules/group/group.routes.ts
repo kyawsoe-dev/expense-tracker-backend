@@ -8,6 +8,7 @@ import { GroupController } from "./group.controller";
 import {
   addGroupMemberSchema,
   createGroupSchema,
+  renameGroupSchema,
   memberSuggestionQuerySchema
 } from "./group.schema";
 
@@ -22,5 +23,7 @@ router.get("/member-suggestions", validateQuery(memberSuggestionQuerySchema), co
 router.get("/:id", controller.detail);
 router.post("/", validateBody(createGroupSchema), controller.create);
 router.post("/:id/members", validateBody(addGroupMemberSchema), controller.addMember);
+router.patch("/:id", validateBody(renameGroupSchema), controller.rename);
+router.delete("/:id/members/:memberId", controller.removeMember);
 
 export default router;

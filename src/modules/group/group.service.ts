@@ -134,6 +134,35 @@ export class GroupService {
     }));
   }
 
+  async renameGroup(requestUserId: string, groupId: string, payload: { name: string }) {
+    const group = await this.ensureAccessibleGroup(groupId, requestUserId);
+    if (group.ownerId !== requestUserId) {
+      throw new AppError(403, "Only the group owner can rename the group");
+    }
+
+    const name = payload.name.trim();
+    const existing = await this.repo.findByNameForOwner(name, requestUserId);
+    if (existing && existing.id !== groupId) {
+      throw new AppError(409, "Group name already exists");
+    }
+
+    return this.repo.renameGroup(groupId, name);
+  }
+
+  async removeMember(requestUserId: string, groupId: string, memberId: string) {
+    const group = await this.ensureAccessibleGroup(groupId, requestUserId);
+    if (group.ownerId !== requestUserId) {
+      throw new AppError(403, "Only the group owner can remove members");
+    }
+
+    if (memberId === requestUserId) {
+      throw new AppError(400, "You cannot remove yourself from the group");
+    }
+
+    await this.repo.removeMember(groupId, memberId);
+    return this.getGroupDetail(requestUserId, groupId);
+  }
+
   private async resolveMemberIds(memberEmails: string[], ownerId: string) {
     const normalizedEmails = [...new Set(
       memberEmails
