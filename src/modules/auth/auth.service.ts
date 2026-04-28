@@ -4,6 +4,7 @@ import { User } from "@prisma/client";
 import { prisma } from "../../prisma/client";
 import { AppError } from "../../common/errors/AppError";
 import { env } from "../../config/env";
+import axios from "axios";
 
 type JwtPair = { accessToken: string; refreshToken: string };
 
@@ -44,6 +45,75 @@ export class AuthService {
 
     const ok = await bcrypt.compare(input.password, user.passwordHash);
     if (!ok) throw new AppError(401, "Invalid credentials");
+
+    const tokens = this.signTokens(user);
+    const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 10);
+    await prisma.user.update({ where: { id: user.id }, data: { refreshTokenHash } });
+
+    return {
+      user: { id: user.id, email: user.email, name: user.name },
+      ...tokens
+    };
+  }
+
+  async socialLogin(input: { provider: 'google' | 'github'; token: string }) {
+    let email: string | undefined;
+    let name: string | undefined;
+
+    if (input.provider === 'google') {
+      // Verify Google ID token by calling Google's tokeninfo endpoint
+      try {
+        const res = await axios.get(
+          `https://oauth2.googleapis.com/tokeninfo?id_token=${input.token}`
+        );
+        email = res.data.email;
+        name = res.data.name;
+        
+        if (!email) {
+          throw new AppError(401, "Invalid Google ID token: no email");
+        }
+      } catch (err) {
+        throw new AppError(401, "Invalid Google ID token");
+      }
+    } else if (input.provider === 'github') {
+      // Verify GitHub access token and get user info
+      try {
+        const userRes = await axios.get('https://api.github.com/user', {
+          headers: { Authorization: `token ${input.token}` }
+        });
+        email = userRes.data.email;
+        name = userRes.data.name || userRes.data.login;
+
+        // GitHub might not return email in user profile, fetch emails separately
+        if (!email) {
+          const emailsRes = await axios.get('https://api.github.com/user/emails', {
+            headers: { Authorization: `token ${input.token}` }
+          });
+          const primaryEmail = emailsRes.data.find((e: any) => e.primary) || emailsRes.data[0];
+          email = primaryEmail?.email;
+        }
+
+        if (!email) {
+          throw new AppError(401, "Unable to get email from GitHub");
+        }
+      } catch (err) {
+        throw new AppError(401, "Invalid GitHub access token");
+      }
+    } else {
+      throw new AppError(400, "Unsupported provider");
+    }
+
+    let user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email,
+          name: name || 'User',
+          passwordHash: '',
+        }
+      });
+    }
 
     const tokens = this.signTokens(user);
     const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 10);

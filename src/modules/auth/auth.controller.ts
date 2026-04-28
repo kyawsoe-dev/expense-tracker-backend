@@ -22,6 +22,15 @@ export class AuthController {
     }
   };
 
+  socialLogin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const out = await this.authService.socialLogin(req.body);
+      res.status(200).json(out);
+    } catch (err) {
+      next(err);
+    }
+  };
+
   refresh = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const out = await this.authService.refresh(req.body);
