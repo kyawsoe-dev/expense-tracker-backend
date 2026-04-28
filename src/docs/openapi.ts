@@ -165,6 +165,13 @@ const openApiDocument = {
           }
         }
       },
+      GroupRenameRequest: {
+        type: "object",
+        required: ["name"],
+        properties: {
+          name: { type: "string", minLength: 1, maxLength: 80 }
+        }
+      },
       ExpenseRequest: {
         type: "object",
         required: ["title", "amount", "category", "date"],
@@ -438,6 +445,28 @@ const openApiDocument = {
             content: jsonContent({ $ref: "#/components/schemas/GroupDetail" })
           }
         }
+      },
+      patch: {
+        summary: "Rename a group",
+        security: bearerSecurity,
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "string", format: "uuid" }
+          }
+        ],
+        requestBody: {
+          required: true,
+          content: jsonContent({ $ref: "#/components/schemas/GroupRenameRequest" })
+        },
+        responses: {
+          "200": {
+            description: "Updated group detail",
+            content: jsonContent({ $ref: "#/components/schemas/GroupDetail" })
+          }
+        }
       }
     },
     "/api/v1/groups/{id}/members": {
@@ -456,6 +485,32 @@ const openApiDocument = {
           required: true,
           content: jsonContent({ $ref: "#/components/schemas/GroupMemberRequest" })
         },
+        responses: {
+          "200": {
+            description: "Updated group detail",
+            content: jsonContent({ $ref: "#/components/schemas/GroupDetail" })
+          }
+        }
+      }
+    },
+    "/api/v1/groups/{id}/members/{memberId}": {
+      delete: {
+        summary: "Remove a member from a group",
+        security: bearerSecurity,
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "string", format: "uuid" }
+          },
+          {
+            name: "memberId",
+            in: "path",
+            required: true,
+            schema: { type: "string", format: "uuid" }
+          }
+        ],
         responses: {
           "200": {
             description: "Updated group detail",
@@ -609,6 +664,30 @@ const openApiDocument = {
           "200": {
             description: "Yearly analytics",
             content: jsonContent({ $ref: "#/components/schemas/ExpenseYearAnalytics" })
+          }
+        }
+      }
+    },
+    "/api/v1/config": {
+      get: {
+        summary: "Get public configuration",
+        security: bearerSecurity,
+        responses: {
+          "200": {
+            description: "Configuration object",
+            content: jsonContent({
+              type: "object",
+              properties: {
+                openrouter: {
+                  type: "object",
+                  properties: {
+                    apiKey: { type: "string" },
+                    baseUrl: { type: "string" },
+                    defaultModel: { type: "string" }
+                  }
+                }
+              }
+            })
           }
         }
       }
