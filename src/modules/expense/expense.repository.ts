@@ -115,6 +115,19 @@ export class ExpenseRepository {
     });
   }
 
+  findAllForUser(userId: string) {
+    return this.prisma.expense.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        amount: true,
+        category: true,
+        date: true
+      },
+      orderBy: [{ date: "asc" }, { createdAt: "asc" }]
+    });
+  }
+
   private buildWhere(userId: string, filters: ExpenseListFilters): Prisma.ExpenseWhereInput {
     const search = filters.search?.trim();
     const category = filters.category?.trim();

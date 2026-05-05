@@ -22,6 +22,15 @@ export class ExpenseController {
     }
   };
 
+  detail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const expense = await this.service.getExpense(req.user!.sub, req.params.id);
+      res.status(200).json(expense);
+    } catch (err) {
+      next(err);
+    }
+  };
+
   listByGroup = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { groupId } = req.params;
@@ -55,6 +64,15 @@ export class ExpenseController {
   summary = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const out = await this.service.getCurrentMonthSummary(req.user!.sub);
+      res.status(200).json(out);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  allTimeSummary = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const out = await this.service.getAllTimeSummary(req.user!.sub);
       res.status(200).json(out);
     } catch (err) {
       next(err);

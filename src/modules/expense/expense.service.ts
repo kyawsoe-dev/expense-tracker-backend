@@ -80,6 +80,14 @@ export class ExpenseService {
     };
   }
 
+  async getExpense(userId: string, expenseId: string) {
+    const expense = await this.repo.findById(expenseId, userId);
+    if (!expense) {
+      throw new AppError(404, "Expense not found");
+    }
+    return expense;
+  }
+
   listExpensesByGroup(userId: string, groupId: string, take?: number, skip?: number) {
     return this.listExpensesByGroupInternal(userId, groupId, take, skip);
   }
@@ -141,6 +149,36 @@ export class ExpenseService {
     return this.getMonthSummary(userId, {});
   }
 
+  async getAllTimeSummary(userId: string) {
+    const expenses = await this.repo.findAllForUser(userId);
+    const byCategoryMap = new Map<string, number>();
+
+    let total = 0;
+    for (const expense of expenses) {
+      const amount = Number(expense.amount);
+      total += amount;
+      byCategoryMap.set(
+        expense.category,
+        this.roundCurrency((byCategoryMap.get(expense.category) ?? 0) + amount)
+      );
+    }
+
+    const byCategory = [...byCategoryMap.entries()]
+      .map(([category, categoryTotal]) => ({
+        category,
+        total: this.roundCurrency(categoryTotal)
+      }))
+      .sort((a, b) => b.total - a.total);
+
+    return {
+      total: this.roundCurrency(total),
+      transactionCount: expenses.length,
+      topCategory: byCategory[0]?.category ?? null,
+      byCategory,
+      currency: "MMK"
+    };
+  }
+
   async getMonthSummary(userId: string, filters: { year?: number; month?: number }) {
     const { year, month, startDate, endDate } = this.resolveMonthRange(filters);
     const expenses = await this.repo.findForDateRange(userId, startDate, endDate);
@@ -171,7 +209,8 @@ export class ExpenseService {
       total: this.roundCurrency(total),
       transactionCount: expenses.length,
       topCategory: byCategory[0]?.category ?? null,
-      byCategory
+      byCategory,
+      currency: "MMK"
     };
   }
 
@@ -217,7 +256,8 @@ export class ExpenseService {
       averageMonthly: this.roundCurrency(total / 12),
       topCategory: byCategory[0]?.category ?? null,
       byMonth,
-      byCategory
+      byCategory,
+      currency: "MMK"
     };
   }
 

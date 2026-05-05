@@ -31,5 +31,6 @@ export const env = {
   rateLimitMax: Number(process.env.RATE_LIMIT_MAX ?? 100),
   openrouterApiKey: process.env.OPENROUTER_API_KEY!,
   openrouterBaseUrl: process.env.OPENROUTER_BASE_URL!,
-  openrouterDefaultModel: process.env.OPENROUTER_DEFAULT_MODEL!
+  openrouterDefaultModel: process.env.OPENROUTER_DEFAULT_MODEL!,
+  adminApiKey: process.env.ADMIN_API_KEY ?? ""
 };
