@@ -5,12 +5,16 @@ const expenseDateSchema = z.coerce.date({
 });
 
 const paginationSchema = z.coerce.number().int().min(0);
+const optionalGroupIdSchema = z.preprocess(
+  (value) => (value === "" ? null : value),
+  z.string().uuid().optional().nullable()
+);
 
 export const createExpenseSchema = z.object({
   title: z.string().trim().min(1).max(120),
   amount: z.number().positive(),
   category: z.string().trim().min(1).max(60),
-  groupId: z.string().uuid().optional().nullable(),
+  groupId: optionalGroupIdSchema,
   date: expenseDateSchema,
   note: z.string().trim().max(500).optional()
 });
